@@ -24,7 +24,7 @@ from sklearn.metrics import silhouette_score
 from sklearn.inspection import permutation_importance
 import lightgbm as lgb
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "lib"))
 import config as C
 import utils as U
 import dataset as D
@@ -97,7 +97,7 @@ def clustering(df, R):
     sc = ax.scatter(pca[:, 0], pca[:, 1], c=feat["cluster"], cmap="tab10", s=12, alpha=.6)
     ax.set_title(f"Clusters (KMeans k={best_k}) en espacio PCA"); ax.set_xlabel("PC1"); ax.set_ylabel("PC2")
     plt.colorbar(sc, ax=ax, label="cluster")
-    fig.tight_layout(); fig.savefig(os.path.join(C.FIG_DIR, "f07_clusters.png")); plt.close(fig)
+    fig.tight_layout(); fig.savefig(os.path.join(C.FIG_EDA, "f07_clusters.png")); plt.close(fig)
     return prof
 
 
@@ -142,14 +142,14 @@ def preliminary_importance(df, R):
     ax.barh(d["feature"], d["perm"], color="#2b7bba")
     ax.set_xlabel("permutation importance (Δ MAE en log)")
     ax.set_title("4.6 — Importancia preliminar (LightGBM, test ≥2024)")
-    fig.tight_layout(); fig.savefig(os.path.join(C.FIG_DIR, "f07_importancia.png")); plt.close(fig)
+    fig.tight_layout(); fig.savefig(os.path.join(C.FIG_EDA, "f07_importancia.png")); plt.close(fig)
 
     # heatmap segmentos
     seg = df.pivot_table(index="categoria_canon", columns="mode", values=TGT, aggfunc="median")
     fig, ax = plt.subplots(figsize=(6, 5))
     sns.heatmap(seg, annot=True, fmt=".0f", cmap="rocket_r", ax=ax)
     ax.set_title("Mediana servicios USD: categoría × modo")
-    fig.tight_layout(); fig.savefig(os.path.join(C.FIG_DIR, "f07_segmentos.png")); plt.close(fig)
+    fig.tight_layout(); fig.savefig(os.path.join(C.FIG_EDA, "f07_segmentos.png")); plt.close(fig)
     return imp, (mae, mdape, wape)
 
 
@@ -159,7 +159,7 @@ def main():
     segment_tables(df, R)
     clustering(df, R)
     imp, metr = preliminary_importance(df, R)
-    R.save(os.path.join(C.REPORTS_DIR, "09_multivariado.md"))
+    R.save(os.path.join(C.REPORTS_EDA, "09_multivariado.md"))
     print("OK 4.6 -> 09_multivariado.md")
     print(f"baseline LightGBM test: MAE=${metr[0]:,.0f} MdAPE={metr[1]:.1f}% WAPE={metr[2]:.1f}%")
     print("top features:", imp["feature"].head(6).tolist())

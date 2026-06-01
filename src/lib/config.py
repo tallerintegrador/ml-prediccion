@@ -18,13 +18,22 @@ SEED = 42
 
 # --------------------------------------------------------------------------- #
 # Rutas
+#   Este módulo vive en src/lib/ -> ROOT sube 3 niveles (lib -> src -> raíz).
 # --------------------------------------------------------------------------- #
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 RAW_DIR = os.path.join(ROOT, "data_csv", "raw")
 PROC_DIR = os.path.join(ROOT, "data_csv", "processed")
-REPORTS_DIR = os.path.join(ROOT, "reports")
-FIG_DIR = os.path.join(REPORTS_DIR, "figures")
-for _d in (PROC_DIR, REPORTS_DIR, FIG_DIR):
+MODELS_DIR = os.path.join(ROOT, "models")
+
+# reports/ se separa por etapa del pipeline
+REPORTS_DIR = os.path.join(ROOT, "reports")          # raíz (compat)
+REPORTS_EDA = os.path.join(REPORTS_DIR, "eda")       # informes 00..13 + figuras EDA
+REPORTS_ML = os.path.join(REPORTS_DIR, "modelado")   # informe 14, métricas, predicciones
+FIG_EDA = os.path.join(REPORTS_EDA, "figures")
+FIG_ML = os.path.join(REPORTS_ML, "figures")
+FIG_DIR = FIG_EDA                                    # alias compat (EDA)
+
+for _d in (PROC_DIR, MODELS_DIR, REPORTS_EDA, REPORTS_ML, FIG_EDA, FIG_ML):
     os.makedirs(_d, exist_ok=True)
 
 # --------------------------------------------------------------------------- #

@@ -19,7 +19,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "lib"))
 import config as C
 import utils as U
 import dataset as D
@@ -91,7 +91,7 @@ def main():
     by_month.plot(kind="bar", ax=ax[2], color="#3aa17e")
     ax[2].set_title("Servicios (mediana) por mes de arribo"); ax[2].set_xlabel("mes")
     fig.suptitle("4.5 — Tiempos y estacionalidad", fontweight="bold")
-    fig.tight_layout(); fig.savefig(os.path.join(C.FIG_DIR, "f06_temporal.png")); plt.close(fig)
+    fig.tight_layout(); fig.savefig(os.path.join(C.FIG_EDA, "f06_temporal.png")); plt.close(fig)
 
     # ---------- catálogo de derivadas ----------
     R.h("Variables derivadas propuestas (con justificación de negocio)")
@@ -111,7 +111,7 @@ def main():
     ]
     R.p(pd.DataFrame(derivadas, columns=["variable", "fórmula", "justificación"]).to_markdown(index=False))
 
-    R.save(os.path.join(C.REPORTS_DIR, "08_temporal.md"))
+    R.save(os.path.join(C.REPORTS_EDA, "08_temporal.md"))
     print("OK 4.5 -> 08_temporal.md ; pendiente_temporal:", f"{sl:+.3f}/año p={p:.1e}")
 
 

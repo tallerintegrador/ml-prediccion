@@ -20,23 +20,23 @@ def code(*src):
 
 cells = [
     md("# EDA v2 — Costos de importación Hortifrut Perú\n",
-       "**Notebook de presentación.** Los cálculos viven en `src/00…07_*.py` (fuente de "
+       "**Notebook de presentación.** Los cálculos viven en `src/eda/00…07_*.py` (fuente de "
        "verdad, reproducibles con `python src/run_all.py`); aquí se cargan los resultados "
        "ya generados y se muestran tablas y figuras clave.\n\n",
        "Metodología CRISP-DM · target validado = **servicios logísticos** (tributos aparte) "
        "sobre **target fiable**."),
     code("import os, sys\n",
-         "sys.path.insert(0, os.path.abspath('../src'))\n",
+         "sys.path.insert(0, os.path.abspath('../src/lib'))\n",
          "import pandas as pd, numpy as np\n",
          "from IPython.display import Image, Markdown, display\n",
          "import dataset as D, config as C\n",
-         "FIG = '../reports/figures'\n",
+         "FIG = '../reports/eda/figures'\n",
          "df = D.load(fiable_only=True)\n",
          "print('Operaciones fiables:', df.shape)"),
 
     md("## 4.0 Inventario y armonización\n",
        "8 CSV (1 expense + 7 operativos) con deriva de esquema español→inglés. "
-       "Ver `reports/00_inventario.md` y `reports/02_armonizacion_columnas.md`."),
+       "Ver `reports/eda/00_inventario.md` y `reports/eda/02_armonizacion_columnas.md`."),
     code("op = pd.read_parquet('../data_csv/processed/operativo_lineas.parquet')\n",
          "exp = pd.read_parquet('../data_csv/processed/expense_lineas.parquet')\n",
          "print('operativo_lineas:', op.shape, '| expense_lineas:', exp.shape)\n",
@@ -70,11 +70,11 @@ cells = [
     code("Image(f'{FIG}/f07_importancia.png')"),
 
     md("## 4.7 Diagnóstico y entregables\n",
-       "- Diccionario: `reports/05_diccionario_datos.md`\n",
-       "- Features candidatas: `reports/11_features_candidatas.md`\n",
-       "- Tabla de decisiones: `reports/12_tabla_decisiones.md`\n",
-       "- **Hallazgos + 9 preguntas:** `reports/13_hallazgos.md`"),
-    code("print(open('../reports/13_hallazgos.md', encoding='utf-8').read()[:1500])"),
+       "- Diccionario: `reports/eda/05_diccionario_datos.md`\n",
+       "- Features candidatas: `reports/eda/11_features_candidatas.md`\n",
+       "- Tabla de decisiones: `reports/eda/12_tabla_decisiones.md`\n",
+       "- **Hallazgos + 9 preguntas:** `reports/eda/13_hallazgos.md`"),
+    code("print(open('../reports/eda/13_hallazgos.md', encoding='utf-8').read()[:1500])"),
 ]
 
 nb = {"cells": cells,

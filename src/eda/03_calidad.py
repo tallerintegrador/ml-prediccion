@@ -18,7 +18,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "lib"))
 import config as C
 import utils as U
 
@@ -83,7 +83,7 @@ def main():
     ax.set_yticks(range(len(show))); ax.set_yticklabels(show, fontsize=6)
     ax.set_xlabel("operaciones (ordenadas por archivo/fecha)")
     ax.set_title("4.2.10 — Matriz de ausencia (oscuro = nulo)")
-    fig.tight_layout(); fig.savefig(os.path.join(C.FIG_DIR, "f03_nulos_heatmap.png")); plt.close(fig)
+    fig.tight_layout(); fig.savefig(os.path.join(C.FIG_EDA, "f03_nulos_heatmap.png")); plt.close(fig)
 
     # nulos en contenedor vs modo (¿coinciden con aéreo?)
     if "ctnr_qty" in m and "mode" in m:
@@ -138,7 +138,7 @@ def main():
     if "moneda" in m:
         R.p(f"- Monedas de mercadería presentes: {m['moneda'].dropna().map(U.norm_text).unique().tolist()}")
 
-    R.save(os.path.join(C.REPORTS_DIR, "04_calidad_datos.md"))
+    R.save(os.path.join(C.REPORTS_EDA, "04_calidad_datos.md"))
 
     # ----------------------------------------------------------------- #
     # Entregable 1 — Diccionario de datos reconstruido
@@ -173,7 +173,7 @@ def main():
     D.h("Variables marcadas como LEAKAGE (excluir como features)")
     leak = dd[dd["rol"] == "leakage"]["variable"].tolist()
     D.p(", ".join(f"`{x}`" for x in leak) if leak else "—")
-    D.save(os.path.join(C.REPORTS_DIR, "05_diccionario_datos.md"))
+    D.save(os.path.join(C.REPORTS_EDA, "05_diccionario_datos.md"))
 
     print("nulos -> 04_calidad_datos.md ; diccionario -> 05_diccionario_datos.md")
     print("clasif:", nul["clasificación"].value_counts().to_dict())

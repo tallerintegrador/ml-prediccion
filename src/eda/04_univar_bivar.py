@@ -18,7 +18,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "lib"))
 import config as C
 import utils as U
 import dataset as D
@@ -76,7 +76,7 @@ def main():
     ax[2].set_xlabel("log tributos"); ax[2].set_ylabel("log servicios")
     ax[2].set_title(f"servicios vs tributos (ρ={df[['tributos_usd',TGT]].corr('spearman').iloc[0,1]:.2f})")
     fig.suptitle("4.3 — Target: servicios vs tributos", fontweight="bold")
-    fig.tight_layout(); fig.savefig(os.path.join(C.FIG_DIR, "f04_target.png")); plt.close(fig)
+    fig.tight_layout(); fig.savefig(os.path.join(C.FIG_EDA, "f04_target.png")); plt.close(fig)
 
     # ---------------- numéricas ----------------
     R.h("Variables numéricas")
@@ -104,7 +104,7 @@ def main():
     R.p("\n- **Alta cardinalidad** (supplier, pol, producto): requieren target/frequency "
         "encoding, no one-hot.\n- **Categorías raras** (n<15): agrupar en 'OTROS' o "
         "usar suavizado bayesiano para evitar sobreajuste.")
-    R.save(os.path.join(C.REPORTS_DIR, "06_univariado.md"))
+    R.save(os.path.join(C.REPORTS_EDA, "06_univariado.md"))
 
     # ================= 4.4 BIVARIADO =================
     B = U.MdReport(f"4.4 — Análisis bivariado: drivers del costo de servicios (n={n})")
@@ -136,7 +136,7 @@ def main():
         ax.set_yscale("log"); ax.set_title(f"{g} (ε²={eff.set_index('variable').loc[g,'epsilon2']:.2f})")
         ax.tick_params(axis="x", rotation=35, labelsize=8)
     fig.suptitle("4.4 — Costo de servicios por driver categórico (log)", fontweight="bold")
-    fig.tight_layout(); fig.savefig(os.path.join(C.FIG_DIR, "f05_drivers_cat.png")); plt.close(fig)
+    fig.tight_layout(); fig.savefig(os.path.join(C.FIG_EDA, "f05_drivers_cat.png")); plt.close(fig)
 
     # --- modo aéreo vs marítimo: costo unitario ---
     B.h("Hipótesis: aéreo más caro por kg")
@@ -170,7 +170,7 @@ def main():
         ax.set_xscale("log"); ax.set_yscale("log")
         ax.set_xlabel(v); ax.set_ylabel("servicios USD"); ax.legend(fontsize=7)
     fig.suptitle("4.4 — Costo de servicios vs escala (log-log, color=modo)", fontweight="bold")
-    fig.tight_layout(); fig.savefig(os.path.join(C.FIG_DIR, "f05_escala.png")); plt.close(fig)
+    fig.tight_layout(); fig.savefig(os.path.join(C.FIG_EDA, "f05_escala.png")); plt.close(fig)
 
     # --- matriz de correlación ---
     B.h("Matriz de correlación (Spearman) entre numéricas y target")
@@ -181,14 +181,14 @@ def main():
     sns.heatmap(corr, annot=True, fmt=".2f", cmap="vlag", center=0, ax=ax,
                 annot_kws={"size": 7})
     ax.set_title("Correlación de Spearman")
-    fig.tight_layout(); fig.savefig(os.path.join(C.FIG_DIR, "f05_corr.png")); plt.close(fig)
+    fig.tight_layout(); fig.savefig(os.path.join(C.FIG_EDA, "f05_corr.png")); plt.close(fig)
     # multicolinealidad
     hi = [(cm[i], cm[j], corr.iloc[i, j]) for i in range(len(cm)) for j in range(i+1, len(cm))
           if abs(corr.iloc[i, j]) > 0.6 and TGT not in (cm[i],)]
     B.p("\n**Multicolinealidad (|ρ|>0.6 entre predictores):** " +
         ("; ".join(f"{a}~{b}={r:.2f}" for a, b, r in hi) if hi else "ninguna fuerte."))
 
-    B.save(os.path.join(C.REPORTS_DIR, "07_bivariado.md"))
+    B.save(os.path.join(C.REPORTS_EDA, "07_bivariado.md"))
     print("OK 4.3/4.4 ->", "06_univariado.md, 07_bivariado.md")
     print("drivers top:", eff[["variable", "epsilon2"]].head(5).to_dict("records"))
 

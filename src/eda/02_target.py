@@ -21,7 +21,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "lib"))
 import config as C
 import utils as U
 
@@ -143,7 +143,7 @@ def make_figures(tgt, concept_g, joined):
     ax[2].boxplot(t, vert=True, showfliers=True)
     ax[2].set_yscale("log"); ax[2].set_title("Boxplot (log)"); ax[2].set_ylabel("USD")
     fig.suptitle("4.3 — Distribución del costo logístico por operación", fontweight="bold")
-    fig.tight_layout(); fig.savefig(os.path.join(C.FIG_DIR, "f02_target_dist.png")); plt.close(fig)
+    fig.tight_layout(); fig.savefig(os.path.join(C.FIG_EDA, "f02_target_dist.png")); plt.close(fig)
 
     # Fig 2: composición por concepto
     fig, ax = plt.subplots(figsize=(9, 5))
@@ -152,7 +152,7 @@ def make_figures(tgt, concept_g, joined):
     for i, (v, p) in enumerate(zip(d["usd_total"] / 1e6, d["usd_pct"])):
         ax.text(v, i, f" {p:.1f}%", va="center", fontsize=8)
     ax.set_xlabel("USD (millones)"); ax.set_title("Composición del gasto por concepto canónico")
-    fig.tight_layout(); fig.savefig(os.path.join(C.FIG_DIR, "f02_conceptos.png")); plt.close(fig)
+    fig.tight_layout(); fig.savefig(os.path.join(C.FIG_EDA, "f02_conceptos.png")); plt.close(fig)
 
     # Fig 3: diagnóstico join
     fig, ax = plt.subplots(figsize=(7, 4))
@@ -162,7 +162,7 @@ def make_figures(tgt, concept_g, joined):
     for i, v in enumerate(vals):
         ax.text(i, v, str(v), ha="center", va="bottom")
     ax.set_ylabel("nº operaciones"); ax.set_title("Diagnóstico de unión expense ↔ operativo")
-    fig.tight_layout(); fig.savefig(os.path.join(C.FIG_DIR, "f02_join.png")); plt.close(fig)
+    fig.tight_layout(); fig.savefig(os.path.join(C.FIG_EDA, "f02_join.png")); plt.close(fig)
 
 
 def main():
@@ -234,7 +234,7 @@ def main():
     pivot.reset_index().to_parquet(os.path.join(C.PROC_DIR, "target_por_concepto.parquet"), index=False)
     make_figures(tgt, concept_g, joined_stats)
 
-    out = R.save(os.path.join(C.REPORTS_DIR, "03_conceptos_target_join.md"))
+    out = R.save(os.path.join(C.REPORTS_EDA, "03_conceptos_target_join.md"))
     print("modelable:", modelable.shape)
     print(f"join_ok={join_ok} solo_op={solo_op} solo_exp={solo_exp}")
     print("OK ->", out)

@@ -17,7 +17,7 @@ import sys
 import pandas as pd
 import numpy as np
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "lib"))
 import config as C
 import utils as U
 
@@ -157,7 +157,7 @@ def main():
         R.p(f"\n**{s}** ({len(orphs)} útiles, excluye 'Unnamed'): " +
             (", ".join(f"`{o}`" for o in orphs) if orphs else "—"))
 
-    out = R.save(os.path.join(C.REPORTS_DIR, "02_armonizacion_columnas.md"))
+    out = R.save(os.path.join(C.REPORTS_EDA, "02_armonizacion_columnas.md"))
     print("OK ->", out)
 
 

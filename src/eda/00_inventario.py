@@ -8,8 +8,8 @@ import os, glob, csv, io
 import pandas as pd
 
 RAW = "data_csv/raw"
-OUT = "reports/00_inventario.md"
-os.makedirs("reports", exist_ok=True)
+OUT = "reports/eda/00_inventario.md"
+os.makedirs("reports/eda", exist_ok=True)
 
 NULL_TOKENS = ["", "NA", "N/A", "n/a", "-", "--", "#N/D", "#¡REF!", "#REF!",
                "PEND", "PENDIENTE", "null", "NULL", "None", "s/d", "S/D", "."]

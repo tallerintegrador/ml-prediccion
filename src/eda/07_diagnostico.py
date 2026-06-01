@@ -16,7 +16,7 @@ import sys
 import numpy as np
 import pandas as pd
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "lib"))
 import config as C
 import utils as U
 import dataset as D
@@ -120,14 +120,14 @@ def main():
         "- **Tipo de cambio por factura** y fecha: para multimoneda exacta.\n"
         "- **Tarifa de flete cotizada** (quote) al momento del embarque.\n"
         "- **Distancia/zona fundo destino** y nº real de contenedores por operación.")
-    R.save(os.path.join(C.REPORTS_DIR, "10_diagnostico.md"))
+    R.save(os.path.join(C.REPORTS_EDA, "10_diagnostico.md"))
 
     # ============ Entregable 4 — features candidatas ============
     F = U.MdReport("Entregable 4 — Features candidatas finales (conocidas a la llegada)")
     for bloque, items in BLOQUES.items():
         F.h(bloque)
         F.p(pd.DataFrame(items, columns=["feature", "tratamiento", "nota"]).to_markdown(index=False))
-    F.save(os.path.join(C.REPORTS_DIR, "11_features_candidatas.md"))
+    F.save(os.path.join(C.REPORTS_EDA, "11_features_candidatas.md"))
 
     # ============ Entregable 5 — tabla de decisiones ============
     T = U.MdReport("Entregable 5 — Tabla de decisiones por variable")
@@ -164,7 +164,7 @@ def main():
     T.p(dt.to_markdown(index=False))
     T.h("Resumen")
     T.p(dt["decision"].value_counts().rename_axis("decisión").reset_index(name="n").to_markdown(index=False))
-    T.save(os.path.join(C.REPORTS_DIR, "12_tabla_decisiones.md"))
+    T.save(os.path.join(C.REPORTS_EDA, "12_tabla_decisiones.md"))
 
     print("OK 4.7 -> 10_diagnostico.md, 11_features_candidatas.md, 12_tabla_decisiones.md")
     print("decisiones:", dt["decision"].value_counts().to_dict())
