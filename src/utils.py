@@ -1,146 +1,216 @@
+# -*- coding: utf-8 -*-
 """
-utils.py — Funciones y constantes compartidas del pipeline HortifrutCostosImport.
+utils.py — Helpers de carga y limpieza para el EDA v2.
 
-Importar con:
-    import sys
-    from pathlib import Path
-    sys.path.insert(0, str(Path(__file__).parent))
-    from utils import limpiar_texto, mdape, rmse, mae, ...
+Incluye:
+  - normalización de encabezados y de texto (sin acentos)
+  - lectura robusta de CSV (encoding/sep por archivo, tokens de nulo)
+  - parser de montos (símbolos, separadores de miles, coma decimal, multimoneda)
+  - parser de fechas (varios formatos dd/mm/aaaa)
+  - canonicalización de conceptos de costo
+  - utilidades de reporte en markdown
 """
-
+import re
+import warnings
 import unicodedata
-
 import numpy as np
 import pandas as pd
 
-import sys
-from pathlib import Path
-sys.path.insert(0, str(Path(__file__).parent))
-from config import INCOTERM_GRUPO, RUTA_ORIGEN, DIAS_TRANSITO
-
-# ---------------------------------------------------------------------------
-# Texto
-# ---------------------------------------------------------------------------
-
-def limpiar_texto(s) -> str:
-    """Normaliza string: upper, sin acentos, sin espacios dobles."""
-    if pd.isna(s):
-        return "DESCONOCIDO"
-    s = str(s).strip().upper()
-    s = unicodedata.normalize("NFD", s)
-    s = "".join(c for c in s if unicodedata.category(c) != "Mn")
-    return " ".join(s.split())
-
-# ---------------------------------------------------------------------------
-# Mappings de dominio
-# ---------------------------------------------------------------------------
-
-def mapear_incoterm_grupo(s: str) -> str:
-    s = limpiar_texto(s)
-    return INCOTERM_GRUPO.get(s[0] if s else "F", "GRUPO_F")
+import config as C
 
 
-def mapear_ruta_origen(pol: str) -> str:
-    pol = limpiar_texto(pol)
-    for clave, region in RUTA_ORIGEN.items():
-        if clave in pol:
-            return region
-    return "OTROS"
+# --------------------------------------------------------------------------- #
+# Normalización de strings
+# --------------------------------------------------------------------------- #
+def strip_accents(s: str) -> str:
+    if s is None:
+        return s
+    return "".join(c for c in unicodedata.normalize("NFKD", str(s))
+                   if not unicodedata.combining(c))
 
 
-def estimar_dias_transito(mode: str) -> int:
-    m = limpiar_texto(str(mode))
-    for k, v in DIAS_TRANSITO.items():
-        if k in m:
-            return v
-    return 25
-
-# ---------------------------------------------------------------------------
-# Métricas de regresión
-# ---------------------------------------------------------------------------
-
-def mdape(y_true, y_pred) -> float:
-    """MdAPE: mediana del porcentaje de error absoluto (%)."""
-    y_true = np.asarray(y_true, dtype=float)
-    y_pred = np.asarray(y_pred, dtype=float)
-    pct    = np.abs((y_true - y_pred) / np.clip(np.abs(y_true), 1e-6, None))
-    return float(np.median(pct) * 100)
-
-mediana_porcentaje_error_absoluto = mdape  # alias de compatibilidad
+def norm_header(s: str) -> str:
+    """Normaliza un encabezado de columna para matching: MAYÚSCULAS, sin acentos,
+    sin puntos, espacios colapsados. 'Nro. Ope.' -> 'NRO OPE'; ' PESO BRUTO ' -> 'PESO BRUTO'."""
+    if s is None:
+        return ""
+    s = strip_accents(str(s)).upper()
+    s = s.replace(".", " ")
+    s = re.sub(r"\s+", " ", s).strip()
+    return s
 
 
-def mape(y_true, y_pred) -> float:
-    """MAPE: media del porcentaje de error absoluto (%)."""
-    y_true = np.asarray(y_true, dtype=float)
-    y_pred = np.asarray(y_pred, dtype=float)
-    pct    = np.abs((y_true - y_pred) / np.clip(np.abs(y_true), 1e-6, None))
-    return float(np.mean(pct) * 100)
+def norm_text(s) -> str:
+    """Normaliza texto de celda categórica/concepto: minúsculas, sin acentos,
+    espacios colapsados. Devuelve '' para NaN."""
+    if s is None or (isinstance(s, float) and np.isnan(s)):
+        return ""
+    s = strip_accents(str(s)).lower()
+    s = re.sub(r"\s+", " ", s).strip()
+    return s
 
 
-def rmse(y_true, y_pred) -> float:
-    """RMSE: raíz del error cuadrático medio."""
-    y_true = np.asarray(y_true, dtype=float)
-    y_pred = np.asarray(y_pred, dtype=float)
-    return float(np.sqrt(np.mean((y_true - y_pred) ** 2)))
+# Mapa reverso normalizado -> canónico (construido una vez)
+_REVERSE_COL_MAP = {}
+for _canon, _variants in C.CANON_COLUMNS.items():
+    for _v in _variants:
+        _REVERSE_COL_MAP[norm_header(_v)] = _canon
 
 
-def mae(y_true, y_pred) -> float:
-    """MAE: error absoluto medio."""
-    y_true = np.asarray(y_true, dtype=float)
-    y_pred = np.asarray(y_pred, dtype=float)
-    return float(np.mean(np.abs(y_true - y_pred)))
-
-# ---------------------------------------------------------------------------
-# Métricas de clasificación auxiliares
-# ---------------------------------------------------------------------------
-
-def cobertura_intervalo(y_true, p_inf, p_sup) -> float:
-    """Proporción de valores reales dentro del intervalo [p_inf, p_sup]."""
-    y_true = np.asarray(y_true, dtype=float)
-    p_inf  = np.asarray(p_inf,  dtype=float)
-    p_sup  = np.asarray(p_sup,  dtype=float)
-    return float(((y_true >= p_inf) & (y_true <= p_sup)).mean() * 100)
-
-# ---------------------------------------------------------------------------
-# PSI (Population Stability Index)
-# ---------------------------------------------------------------------------
-
-def calcular_psi_numerico(x_base, x_prod, n_bins: int = 10) -> float:
-    """PSI para una feature continua, usando deciles del conjunto base."""
-    x_base = pd.Series(x_base).dropna()
-    x_prod = pd.Series(x_prod).dropna()
-    if len(x_base) < 10 or len(x_prod) < 5:
-        return float("nan")
-    bins      = np.percentile(x_base, np.linspace(0, 100, n_bins + 1))
-    bins[0]  -= 1e-6
-    bins[-1] += 1e-6
-    bins = np.unique(bins)
-    if len(bins) < 3:
-        return float("nan")
-    p_base = np.clip(np.histogram(x_base, bins=bins)[0] / len(x_base), 1e-6, None)
-    p_prod = np.clip(np.histogram(x_prod, bins=bins)[0] / len(x_prod), 1e-6, None)
-    return float(np.sum((p_prod - p_base) * np.log(p_prod / p_base)))
+def canon_column(raw_name: str):
+    """Devuelve el nombre canónico de una columna cruda, o None si es huérfana."""
+    return _REVERSE_COL_MAP.get(norm_header(raw_name))
 
 
-def calcular_psi_categorico(x_base, x_prod) -> float:
-    """PSI para una feature categórica."""
-    x_base = pd.Series(x_base).dropna().astype(str)
-    x_prod = pd.Series(x_prod).dropna().astype(str)
-    cats   = set(x_base) | set(x_prod)
-    psi    = 0.0
-    for c in cats:
-        pb  = max((x_base == c).mean(), 1e-6)
-        pp  = max((x_prod == c).mean(), 1e-6)
-        psi += (pp - pb) * np.log(pp / pb)
-    return float(psi)
+# --------------------------------------------------------------------------- #
+# Parsers
+# --------------------------------------------------------------------------- #
+_MONEY_CUR = {"$": "USD", "us$": "USD", "usd": "USD", "€": "EUR", "eur": "EUR",
+              "s/": "PEN", "s/.": "PEN", "pen": "PEN", "soles": "PEN"}
 
 
-def interpretar_psi(psi) -> str:
-    if pd.isna(psi):
-        return "SIN DATOS"
-    elif psi < 0.10:
-        return "ESTABLE"
-    elif psi < 0.25:
-        return "CAMBIO MODERADO"
+def parse_money(x, default_cur=None):
+    """Parsea un monto que puede venir como texto con símbolos/separadores.
+    Devuelve (valor_float, moneda_detectada|None). Soporta formato es/us
+    ('221,505.80', '4.129,65', '$ 221,505.80', '€ 0.00')."""
+    if x is None or (isinstance(x, float) and np.isnan(x)):
+        return (np.nan, None)
+    s = str(x).strip()
+    if s == "" or s.lower() in ("nan", "na", "-", "none"):
+        return (np.nan, None)
+    cur = None
+    low = s.lower()
+    for sym, c in _MONEY_CUR.items():
+        if sym in low:
+            cur = c
+            break
+    # quitar todo lo que no sea dígito, separador o signo
+    s = re.sub(r"[^\d,.\-]", "", s)
+    if s in ("", "-", ".", ","):
+        return (np.nan, cur or default_cur)
+    # decidir separador decimal: el último de , o . que aparezca
+    last_comma = s.rfind(",")
+    last_dot = s.rfind(".")
+    if last_comma > last_dot:
+        # coma decimal -> quitar puntos (miles), coma -> punto
+        s = s.replace(".", "").replace(",", ".")
     else:
-        return "DRIFT CRITICO"
+        # punto decimal -> quitar comas (miles)
+        s = s.replace(",", "")
+    try:
+        val = float(s)
+    except ValueError:
+        return (np.nan, cur or default_cur)
+    return (val, cur or default_cur)
+
+
+def to_number(x):
+    """Parsea sólo el valor numérico (ignora moneda)."""
+    return parse_money(x)[0]
+
+
+def parse_date(x):
+    """Parsea fecha en formatos heterogéneos -> pd.Timestamp o NaT."""
+    if x is None or (isinstance(x, float) and np.isnan(x)):
+        return pd.NaT
+    s = str(x).strip()
+    if s == "" or s.lower() in ("nan", "na", "-", "none", "pend", "pendiente"):
+        return pd.NaT
+    # intentar día primero (dd/mm/aaaa típico en los reportes)
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        for dayfirst in (True, False):
+            dt = pd.to_datetime(s, errors="coerce", dayfirst=dayfirst)
+            if pd.notna(dt):
+                # descartar fechas imposibles
+                if 2015 <= dt.year <= 2027:
+                    return dt
+    return pd.NaT
+
+
+def amount_to_usd(value, cur):
+    """Convierte un monto a USD usando FX de respaldo (solo mercadería operativa)."""
+    if pd.isna(value):
+        return np.nan
+    rate = C.FX_TO_USD.get(str(cur).upper() if cur else "USD", np.nan)
+    return value * rate
+
+
+# --------------------------------------------------------------------------- #
+# Conceptos
+# --------------------------------------------------------------------------- #
+_COMPILED_CONCEPT_RULES = [(re.compile(p), name) for p, name in C.CONCEPT_RULES]
+
+
+def canon_concept(raw_concept) -> str:
+    """Canonicaliza un concepto de costo crudo aplicando CONCEPT_RULES en orden."""
+    t = norm_text(raw_concept)
+    if t == "":
+        return C.CONCEPTO_CANON_DEFAULT
+    for rgx, name in _COMPILED_CONCEPT_RULES:
+        if rgx.search(t):
+            return name
+    return C.CONCEPTO_CANON_DEFAULT
+
+
+# --------------------------------------------------------------------------- #
+# Llave de operación (descubierta en el probe: YY-NNN robusto a deriva de código)
+# --------------------------------------------------------------------------- #
+def op_key(x):
+    """Llave de unión de operación: 'YY-NNN' (año + secuencia)."""
+    if x is None or (isinstance(x, float) and np.isnan(x)):
+        return None
+    m = re.match(r"\s*(\d{2})\D*(\d{3})", str(x).upper().strip())
+    return f"{m.group(1)}-{m.group(2)}" if m else None
+
+
+def op_id_full(x):
+    """Identificador normalizado completo (YYNNNCODE) — para detectar colisiones."""
+    if x is None or (isinstance(x, float) and np.isnan(x)):
+        return None
+    return re.sub(r"[^0-9A-Z]", "", str(x).upper().strip()) or None
+
+
+# --------------------------------------------------------------------------- #
+# IO
+# --------------------------------------------------------------------------- #
+def read_raw(path, sep, enc):
+    """Lee un CSV crudo como texto, con tokens de nulo, sin coerción de tipos."""
+    return pd.read_csv(path, sep=sep, encoding=enc, dtype=str,
+                       keep_default_na=False, na_values=C.NULL_TOKENS,
+                       engine="python", on_bad_lines="warn")
+
+
+def drop_empty_cols(df, thresh=1.0):
+    """Elimina columnas totalmente vacías (>= thresh fracción de nulos)."""
+    keep = [c for c in df.columns if df[c].notna().mean() < thresh or df[c].notna().any()]
+    return df[keep]
+
+
+# --------------------------------------------------------------------------- #
+# Reporte markdown
+# --------------------------------------------------------------------------- #
+class MdReport:
+    def __init__(self, title):
+        self.lines = [f"# {title}\n"]
+
+    def h(self, txt, level=2):
+        self.lines.append(f"\n{'#' * level} {txt}\n")
+
+    def p(self, txt=""):
+        self.lines.append(txt)
+
+    def table(self, df, floatfmt="{:.2f}", index=False, max_rows=None):
+        d = df.copy()
+        if max_rows:
+            d = d.head(max_rows)
+        for c in d.columns:
+            if pd.api.types.is_float_dtype(d[c]):
+                d[c] = d[c].map(lambda v: "" if pd.isna(v) else floatfmt.format(v))
+        self.lines.append(d.to_markdown(index=index))
+
+    def save(self, path):
+        import io
+        with io.open(path, "w", encoding="utf-8") as f:
+            f.write("\n".join(str(x) for x in self.lines))
+        return path
