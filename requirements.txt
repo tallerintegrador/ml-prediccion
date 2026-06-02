@@ -10,3 +10,4 @@ matplotlib>=3.7
 seaborn>=0.12
 openpyxl>=3.1
 pyarrow>=12.0
+tabulate>=0.9

@@ -1,6 +1,6 @@
 # ── Datos, reportes y referencias (sensibles / grandes) ──────────────────────
 data/
-reports/
+# reports/
 referencias/
 
 # ── Modelos ML (binarios grandes) ────────────────────────────────────────────
@@ -94,5 +94,28 @@ $RECYCLE.BIN/
 
 # ── Optuna / MLflow / experimentos ───────────────────────────────────────────
 optuna.db
+*.optuna.db
+optuna_*.db
 mlruns/
 mlartifacts/
+
+# ── Entradas/salidas locales de predicción (no versionar) ────────────────────
+#   inputs de predecir_operacion.py --json y salidas locales de pruebas
+mi_operacion.json
+*.local.json
+*.local.csv
+
+# ── Caché de ejecución de notebooks y perfilado ──────────────────────────────
+*.nbconvert.ipynb
+.virtual_documents/
+*.prof
+prof/
+
+# ── Caché de pip / build de paquetes ─────────────────────────────────────────
+pip-wheel-metadata/
+.pip-cache/
+pip-log.txt
+
+legacy/
+
+data_csv/
